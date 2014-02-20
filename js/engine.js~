@@ -1,0 +1,102 @@
+function Body(x, y, dx, dy, context) {
+	
+	this.x = x || 0;
+	this.y = y || 0;
+	this.dx = dx;					// horizontal position increment - speed
+	this.dy = dy;					// vertical position increment - speed
+	this.ddx = 0;					// horizontal acceleration
+	this.ddy = CONST.GRAVITY;		// vertical acceleration
+	this.width = 40;
+	this.height = 65;
+	this.FRICTION_AIR = 0.06;		// 0 - no friction, 1 - maximum friction
+	this.FRICTION_GROUND = 0.15;	// 0 - no friction, 1 - maximum friction
+	this.ELASTICITY = 0.55;			// amount of momentum preserved during collisions
+	this.context = context;
+	this.offsetX = 900;
+	
+	// fix constants (for unification purposes, some constants have values not suitable for later processing)
+	this.FRICTION_GROUND = 1 - this.FRICTION_GROUND;
+	
+	// load sprites
+	this.imagePaths = ['images/mouse_0.png', 'images/mouse_1.png'];
+	this.imageMap = [];
+	this.imageInd = 0;
+	for (var ind in this.imagePaths) {
+		this.imageMap[ind] = new Image();
+		this.imageMap[ind].src = this.imagePaths[ind];	
+	}
+	
+	this.cyclesOnGround = 0;
+	
+	
+}
+
+Body.prototype.move = function() {
+
+	// update acceleration
+	this.dx += this.ddx;
+	this.dy += this.ddy;
+	
+	// apply horizontal air friction, proportional to the air speed
+	if (this.dx != 0) {
+		var frictionAmount = Math.pow(this.dx * this.FRICTION_AIR, 2);
+		this.dx += this.dx > 0 ? -frictionAmount : frictionAmount;
+	}
+	
+	// horizontal collision detection
+	// var p = this.context.getImageData(this.dx < 0 ? this.x : this.x + this.width, this.y, 1, 1).data;
+	var p = this.context.getImageData(this.dx < 0 ? this.offsetX : this.offsetX + this.width, this.y, 1, 1).data;
+	if (p[1] != CONST.EMPTY_SPACE.RED || p[2] != CONST.EMPTY_SPACE.GREEN || p[3] != CONST.EMPTY_SPACE.BLUE) {
+		// hit detected, invert x
+		this.dx *= -this.ELASTICITY;
+	}
+	
+	// vertical collision detection
+	//var p = this.context.getImageData(this.x, this.dy < 0 ? this.y : this.y + this.height, 1, 1).data;
+	var p = this.context.getImageData(this.offsetX, this.dy < 0 ? this.y : this.y + this.height, 1, 1).data;
+	var touchingGround = (p[1] != CONST.EMPTY_SPACE.RED || p[2] != CONST.EMPTY_SPACE.GREEN || p[3] != CONST.EMPTY_SPACE.BLUE) && this.dy > 0;
+	var isNotLifting = this.cyclesOnGround > 2;
+	
+	if (touchingGround) {
+		var newDy = this.dy * -this.ELASTICITY;
+		this.dy = Math.abs(newDy) > 2 ? newDy : 0;		
+		this.cyclesOnGround++;
+	}
+	else {
+		this.cyclesOnGround = 0;
+	}
+	
+	if (isNotLifting) {
+		// apply friction
+		this.dx *= this.FRICTION_GROUND;
+	}
+	
+	// update position
+	this.x += this.dx;
+	this.y += this.dy;
+	
+	// console.log(this.x + ' ' + this.y + ' ' + this.dx + ' ' + this.dy);
+}
+
+Body.prototype.draw = function() {
+	// this.context.drawImage(this.imageMap[this.cyclesOnGround > 2 ? 0 : 1], this.x, this.y, this.width, this.height);
+	this.context.drawImage(this.imageMap[this.cyclesOnGround > 2 ? 0 : 1], this.offsetX, this.y, this.width, this.height);
+}
+
+Body.prototype.render = function() {
+	this.move();
+	this.draw();
+}
+
+Body.prototype.hasPointAt = function(x, y) {
+	// return x >= this.x && x < this.x + this.width && y >= this.y && y < this.y + this.height;
+	return x >= this.offsetX && x < this.offsetX + this.width && y >= this.y && y < this.y + this.height;
+}
+
+Body.prototype.getCenterPoint = function() {
+	return {
+		//x: this.x + this.width / 2,
+		x: this.offsetX + this.width / 2,
+        y: this.y + this.height / 2
+	};
+}

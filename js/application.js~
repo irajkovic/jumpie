@@ -1,0 +1,114 @@
+var CONST = {
+	GRAVITY : 0.8,
+	CANVAS_WIDTH : 1500,
+	CANVAS_HEIGHT : 768,
+	EMPTY_SPACE : {
+		RED : 0,
+		GREEN : 0,
+		BLUE : 0
+	}
+}
+
+var renderables = null;
+
+$(function() {
+
+	// adjust canvas size
+	CONST.CANVAS_WIDTH = window.screen.width;
+	CONST.CANVAS_HEIGHT = window.screen.height - 200;
+	$('#canvas').attr('width', CONST.CANVAS_WIDTH);
+	$('#canvas').attr('height', CONST.CANVAS_HEIGHT);
+	
+	
+	// get animate function
+	window.requestAnimFrame = (function(callback) {
+        return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame ||
+        function(callback) {
+          window.setTimeout(callback, 1000 / 60);
+        };
+      })();
+	
+	// init canvas
+	CONST.canvasContext = document.getElementById('canvas').getContext('2d');
+	
+	// init elements
+	renderables = {
+	    world: new World(CONST.canvasContext),
+	    player: new Body(0, 0, 4, 0, CONST.canvasContext),
+	    aim: new Aim(CONST.canvasContext)
+	}
+
+	// init event handlers
+	
+	$('#canvas').mousemove(function(event) {
+		if (renderables.aim.active) {
+			renderables.aim.endX = event.clientX;
+			renderables.aim.endY = event.clientY;
+		}
+		
+	});
+	
+	$('#canvas').mousedown(function(event) {
+
+			// make sure aim start is at character center
+			if (renderables.player.hasPointAt(event.clientX , event.clientY)) {
+				var centerPosition = renderables.player.getCenterPoint();
+				renderables.aim.startX = centerPosition.x;
+				renderables.aim.startY = centerPosition.y;
+				renderables.aim.active = true;
+			}	
+		
+	});
+	
+	$('#canvas').mouseup(function(event) {
+		if (renderables.aim.active) {
+			renderables.aim.endX = event.clientX;
+			renderables.aim.endY = event.clientY;
+			renderables.aim.active = false;
+			// jump
+			//renderables.player.dx = (renderables.aim.endX - renderables.player.x) / 40;
+			renderables.player.dx = (renderables.aim.endX - renderables.player.offsetX) / 20;
+            renderables.player.dy = (renderables.aim.endY - renderables.player.y) / 10;
+			renderables.player.imageInd = 1;
+		}
+
+	});
+	
+	// start rendering
+	render();
+	
+	
+})
+
+function render() {
+
+	// clear canvas
+	CONST.canvasContext.clearRect(0, 0, CONST.CANVAS_WIDTH, CONST.CANVAS_HEIGHT);
+	
+	// center world
+	renderables.world.x = renderables.player.x;
+
+	// render all objects
+	for (var ind in renderables) {
+		renderables[ind].render();
+	}
+
+	requestAnimFrame(function() {
+		render();
+	});
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
